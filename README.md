@@ -98,93 +98,6 @@ The MI term (weighted by beta = 20.0) penalizes any information shared between z
 
 ---
 
-## Installation
-
-```bash
-git clone https://github.com/NachiketBa/Generative-AI-for-RL.git
-cd "Generative-AI-for-RL/Mars Lander Problem"
-
-pip install torch pandas numpy matplotlib
-```
-
-Tested on Python 3.9+ and PyTorch 2.0+. Both scripts detect CUDA automatically and fall back to CPU if no GPU is found.
-
----
-
-## Data Format
-
-Each dataset is a folder of CSV files, one file per training run.
-
-```
-wind_vae_final_mod_params/
-    sample_0000.csv     # single column, 1200 rows: one policy parameter vector
-    sample_0001.csv
-    ...
-
-no_wind_vae_final_mod_params/
-    sample_0000.csv
-    ...
-```
-
-Before training, each feature is normalized to zero mean and unit variance. Generated samples are de-normalized back to the original scale before saving.
-
-> **Before running either script, update the hardcoded folder paths** near the top of each file to point to your local data directories.
-
----
-
-## Running the scripts
-
-### S-VAE
-
-```bash
-python S_VAE_mars_lander.py
-```
-
-This loads the first 25 samples from the wind folder, trains a VAE for 2000 epochs, shows a loss plot, then writes 1000 generated samples to:
-
-```
-Mars_lander_VAE_noise_25/
-    sample_0000.csv
-    ...
-    sample_0999.csv
-```
-
-### MI-VAE
-
-```bash
-python MI_VAE_mars_lander.py
-```
-
-This loads 25 wind samples (Dataset A) and 1000 no-wind samples (Dataset B), trains the dual-encoder model for 2000 epochs, then writes 1000 generated samples to:
-
-```
-Mars_lander_2AE_noise_25/
-    sample_0000.csv
-    ...
-    sample_0999.csv
-```
-
----
-
-## Console output
-
-**S-VAE** prints one line per epoch:
-```
-Epoch [1/2000], Loss: 142.3821, kl_loss: 0.0023
-Epoch [2/2000], Loss: 138.9102, kl_loss: 0.0041
-```
-
-**MI-VAE** prints reconstruction loss, both KL terms, and the current MI estimate:
-```
-Epoch 1/2000,  Total Loss: 9.4521, KL1: 0.0031, KL2: 0.0012, MI: 0.0000
-...
-Epoch 51/2000, Total Loss: 8.1234, KL1: 0.0045, KL2: 0.0018, MI: 0.4321
-```
-
-MI reads 0.0000 for the first 50 epochs while the warmup runs. Once it activates at epoch 51, you should see it climb as the domain-specific encoders diverge.
-
----
-
 ## Design notes
 
 **LayerNorm instead of BatchNorm.** With only 25 samples in Dataset A, batch statistics are too noisy to normalize reliably. LayerNorm operates per sample, so batch size does not affect its behavior.
@@ -194,17 +107,6 @@ MI reads 0.0000 for the first 50 epochs while the warmup runs. Once it activates
 **Separate priors for z1_A and z1_B.** The MI-VAE sets the prior for z1_A to N(0, I) and for z1_B to N(1, 2I). Starting the two domain-specific encoders from different prior regions makes it easier for the MI penalty to keep them separated throughout training.
 
 **MI warmup.** The EMA covariance estimate is unreliable early in training before enough batches have been seen. Running 50 epochs of pure reconstruction and KL loss first gives the estimate time to stabilize before the MI term turns on.
-
----
-
-## File structure
-
-```
-Mars Lander Problem/
-    S_VAE_mars_lander.py        # single-domain VAE
-    MI_VAE_mars_lander.py       # dual-domain MI-VAE
-    README.md
-```
 
 ---
 
