@@ -57,15 +57,16 @@ L = MSE(x_hat, x)  +  KL[ q(z|x) || N(0, I) ]
 
 A dual-encoder, dual-decoder VAE that separates what is unique to each domain (z1) from what both domains share (z2).
 
-```
-   Encoder1                      Encoder2
-       |                            |
-  Dataset A -> z1_A           Dataset A,Dataset B -> z_shared 
-  Dataset B -> z2_B                 |
-       |                            |
+```                     
+  Dataset A, Dataset B        Dataset A, Dataset B 
+           |                          |
+       Encoder 1                   Encoder 2
+           |                          |
+      z1_A,   z2_B                 z_shared
+           |                          |
   DecoderA([z1_A, z_shared])    DecoderB([z1_B, z_shared])
-       |                            |
-     x_hat_A                     x_hat_B
+           |                          |
+        x_hat_A                    x_hat_B
 ```
 
 **Loss function:**
