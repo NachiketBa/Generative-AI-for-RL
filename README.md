@@ -19,7 +19,7 @@ Two models are implemented:
 
 ## Background
 
-The Mars Lander problem asks an agent to control a lander's rotation and thrust to reach a flat landing zone under Martian gravity (3.711 m/s²). The RL agent is a neural network, and its weights form a ~1200-dimensional parameter vector. Rather than modeling the lander physics directly, this project models **the distribution of trained policy weights** — wind vs. no-wind — and generates new ones.
+The Mars Lander problem involves learning a control policy that adjusts a lander’s rotation and thrust to achieve a safe touchdown within a designated flat landing zone under Martian gravity (3.711 m/s²). In this setting, the reinforcement learning (RL) agent is represented by a neural network whose weights define a high-dimensional (1200-dimensional) parameter space including time, state variables, control inputs, and environmental disturbances such as wind. Rather than explicitly modeling the underlying lander dynamics which are both partially unknown and affected by noise, this work adopts a data-driven approach that focuses on learning the distribution of observed trajectories, enabling the generation of new samples that are statistically consistent with the original data.
 
 - **Dataset A**: 25 policy parameter vectors from agents trained with wind
 - **Dataset B**: 1000 policy parameter vectors from agents trained without wind
