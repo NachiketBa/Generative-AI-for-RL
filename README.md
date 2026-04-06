@@ -35,7 +35,7 @@ The imbalance between the two domains is intentional; the MI-VAE is specifically
 A standard single-domain VAE trained only on wind-condition parameters.
 
 ```
-Input (1200-dim policy params)
+Input (1200-dim samples)
         |
   Encoder: Linear -> LayerNorm -> ReLU -> Linear -> LayerNorm -> ReLU -> [mu, log_var]
         |
@@ -43,7 +43,7 @@ Input (1200-dim policy params)
         |
   Decoder: Linear -> LayerNorm -> ReLU -> Linear -> LayerNorm -> ReLU -> x_hat
         |
-Output (1200-dim reconstructed params)
+Output (1200-dim reconstructed samples)
 ```
 
 **Loss function:**
