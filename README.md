@@ -1,18 +1,18 @@
 # Generative AI for RL: Mars Lander Problem
 
-> A standard Variational Autoencoder (S-VAE) and a physics based variational autoencoder (MI-VAE) are trained to generate synthetic data for the Mars Lander problem.
+> Variational Autoencoders (S-VAE and MI-VAE) are trained to generate synthetic data for the Mars Lander problem.
 
 ---
 
 ## What this is
 
-Real RL training runs for the Mars Lander are expensive to collect, especially under wind conditions where only 25 samples were available. This project fits two VAE models to those small datasets and uses them to generate 1000 new synthetic policy parameter vectors per run. Those vectors can then be fed back into the RL training loop as data augmentation.
+Real-world landing trajectories for the Mars Lander are difficult to collect owing to cost, labor and time considerations resulting in the availability of only a limited set of real-world trajectories. This project fits two VAE models to those small datasets and uses them to generate 1000 new synthetic samples for different wind conditions. This data can then be used for a BC and BBPO based RL algorithm for policy extraction and improvement.
 
 Two models are implemented:
 
 | Script | Model | What it does |
 |---|---|---|
-| `S_VAE_mars_lander.py` | Standard VAE (S-VAE) | Fits a single latent distribution to wind-condition policy parameters and samples from it |
+| `S_VAE_mars_lander.py` | Standard VAE (S-VAE) | Trains only on wind data|
 | `MI_VAE_mars_lander.py` | Mutual Information VAE (MI-VAE) | Trains on both wind and no-wind data simultaneously, pushing the two domains into separate latent regions via a mutual information penalty |
 
 ---
@@ -143,7 +143,9 @@ This loads the first 25 samples from the wind folder, trains a VAE for 2000 epoc
 
 ```
 Mars_lander_VAE_noise_25/
-    sample_0000.csv  ...  sample_0999.csv
+    sample_0000.csv
+    ...
+    sample_0999.csv
 ```
 
 ### MI-VAE
@@ -156,7 +158,9 @@ This loads 25 wind samples (Dataset A) and 1000 no-wind samples (Dataset B), tra
 
 ```
 Mars_lander_2AE_noise_25/
-    sample_0000.csv  ...  sample_0999.csv
+    sample_0000.csv
+    ...
+    sample_0999.csv
 ```
 
 ---
