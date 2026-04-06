@@ -1,259 +1,214 @@
-# Generative AI for RL — Mars Lander Problem
+# Generative AI for RL: Mars Lander Problem
 
-> **Using Variational Autoencoders (VAE and MI-VAE) to generate synthetic RL policy parameters for the Mars Lander problem under wind and no-wind conditions.**
+> Variational Autoencoders (S-VAE and MI-VAE) trained to generate synthetic RL policy parameters for the Mars Lander problem, with and without wind.
 
 ---
 
-## Overview
+## What this is
 
-This sub-project is part of the broader **Generative AI for Reinforcement Learning** research initiative. The goal is to use **generative models** to synthesize new RL policy parameter trajectories from a small set of real training runs, enabling data augmentation for the Mars Lander control problem.
+Real RL training runs for the Mars Lander are expensive to collect, especially under wind conditions where only 25 samples were available. This project fits two VAE models to those small datasets and uses them to generate 1000 new synthetic policy parameter vectors per run. Those vectors can then be fed back into the RL training loop as data augmentation.
 
-Two VAE architectures are implemented and compared:
+Two models are implemented:
 
-| Script | Model | Purpose |
+| Script | Model | What it does |
 |---|---|---|
-| `S_VAE_mars_lander.py` | Standard VAE (S-VAE) | Learn a latent distribution over policy parameters from wind-condition runs; generate synthetic samples |
-| `MI_VAE_mars_lander.py` | Mutual Information VAE (MI-VAE) | Disentangle **condition-specific** (wind vs. no-wind) latent factors from **shared** latent factors across both domains |
-
-The generated synthetic parameter sets can then be injected back into the RL training pipeline as data augmentation, improving generalization with very few real rollouts.
+| `S_VAE_mars_lander.py` | Standard VAE (S-VAE) | Fits a single latent distribution to wind-condition policy parameters and samples from it |
+| `MI_VAE_mars_lander.py` | Mutual Information VAE (MI-VAE) | Trains on both wind and no-wind data simultaneously, pushing the two domains into separate latent regions via a mutual information penalty |
 
 ---
 
-## Problem Context
+## Background
 
-The Mars Lander problem involves controlling a lander's **rotation** and **thrust** to reach a flat landing zone safely under Martian gravity (3.711 m/s²). RL agents learn a policy parameterized by neural network weights. This project treats those **policy parameter vectors** as the data distribution to be modeled:
+The Mars Lander problem asks an agent to control a lander's rotation and thrust to reach a flat landing zone under Martian gravity (3.711 m/s²). The RL agent is a neural network, and its weights form a ~1200-dimensional parameter vector. Rather than modeling the lander physics directly, this project models **the distribution of trained policy weights** — wind vs. no-wind — and generates new ones.
 
-- **Dataset A**: Policy parameters from agents trained **with wind** (25 samples)
-- **Dataset B**: Policy parameters from agents trained **without wind** (1000 samples)
+- **Dataset A**: 25 policy parameter vectors from agents trained with wind
+- **Dataset B**: 1000 policy parameter vectors from agents trained without wind
 
-The VAE learns to model and generate new, plausible parameter vectors from each distribution.
+The imbalance between the two domains is intentional; the MI-VAE is specifically designed to handle the case where one domain has far fewer samples.
 
 ---
 
-## Architecture
+## Model Architectures
 
 ### S-VAE (`S_VAE_mars_lander.py`)
 
-A single-domain standard VAE trained on wind-condition policy parameters.
+A standard single-domain VAE trained only on wind-condition parameters.
 
 ```
 Input (1200-dim policy params)
-        ↓
-  Encoder: Linear → LayerNorm → ReLU → Linear → LayerNorm → ReLU → [μ, log σ²]
-        ↓
-  Reparameterization: z = μ + ε·σ,   ε ~ N(0, I)     (z ∈ ℝ³²)
-        ↓
-  Decoder: Linear → LayerNorm → ReLU → Linear → LayerNorm → ReLU → x̂
-        ↓
+        |
+  Encoder: Linear -> LayerNorm -> ReLU -> Linear -> LayerNorm -> ReLU -> [mu, log_var]
+        |
+  Reparameterize: z = mu + eps * sigma,   eps ~ N(0, I)     (z in R^32)
+        |
+  Decoder: Linear -> LayerNorm -> ReLU -> Linear -> LayerNorm -> ReLU -> x_hat
+        |
 Output (1200-dim reconstructed params)
 ```
 
-**Loss:**
+**Loss function:**
 ```
-L = MSE(x̂, x)  +  KL[ q(z|x) || N(0, I) ]
+L = MSE(x_hat, x)  +  KL[ q(z|x) || N(0, I) ]
 ```
 
 ---
 
 ### MI-VAE (`MI_VAE_mars_lander.py`)
 
-A dual-encoder, dual-decoder VAE designed to disentangle **domain-specific** (z₁) and **domain-shared** (z₂) latent variables across wind (A) and no-wind (B) datasets.
+A dual-encoder, dual-decoder VAE that separates what is unique to each domain (z1) from what both domains share (z2).
 
 ```
-Domain A (wind)        Domain B (no-wind)
-      │                       │
-   Encoder1 → z1_A         Encoder1 → z1_B     ← domain-specific latent (ℝ³²)
-   Encoder2 → z2_A         Encoder2 → z2_B     ← shared latent       (ℝ³²)
-      │                       │
-  DecoderA([z1_A, z2_A])  DecoderB([z1_B, z2_B])
-      ↓                       ↓
-    x̂_A                     x̂_B
+Domain A (wind)              Domain B (no-wind)
+       |                            |
+  Encoder1 -> z1_A           Encoder1 -> z1_B     <- domain-specific (R^32)
+  Encoder2 -> z2_A           Encoder2 -> z2_B     <- shared           (R^32)
+       |                            |
+  DecoderA([z1_A, z2_A])    DecoderB([z1_B, z2_B])
+       |                            |
+     x_hat_A                     x_hat_B
 ```
 
-**Loss:**
+**Loss function:**
 ```
 L = Recon_A + Recon_B
-  + λ₁ · (KL[q(z1_A) || p_A(z1)] + KL[q(z1_B) || p_B(z1)])
-  + λ₂ · KL[q(z2) || N(0, I)]
-  + β  · MI(z1_A, z1_B)          ← maximized after warmup (epoch ≥ 50)
+  + lambda1 * (KL[q(z1_A) || p_A(z1)] + KL[q(z1_B) || p_B(z1)])
+  + lambda2 * KL[q(z2) || N(0, I)]
+  + beta    * MI(z1_A, z1_B)          <- added after epoch 50
 ```
 
-The **MI term** encourages the domain-specific encoders to capture *different* information for each domain, pushing the latent spaces apart and improving disentanglement. The EMA-based mutual information estimator is computed using the log-determinant of the joint covariance matrix.
+The MI term (weighted by beta = 20.0) penalizes any information shared between z1_A and z1_B. In practice this forces the domain-specific encoders to find features that genuinely differ between the wind and no-wind conditions. The MI estimate uses an EMA-smoothed covariance matrix rather than a per-batch estimate, which keeps the signal stable given the small dataset size.
 
 ---
 
-## Key Hyperparameters
+## Hyperparameters
 
-| Parameter | S-VAE | MI-VAE | Description |
+| Parameter | S-VAE | MI-VAE | Notes |
 |---|---|---|---|
-| `input_dim` / `n_features` | 1200 | auto-detected | Policy parameter vector size |
-| `latent_size` / `z_dim` | 32 | 32 (z1) + 32 (z2) | Latent space dimensionality |
-| `hidden_dim` | 324 | 324 | Hidden layer width |
-| `epochs` | 2000 | 2000 | Training epochs |
-| `batch_size` | 32 | 32 | Mini-batch size |
-| `learning_rate` | 1e-3 | 1e-3 | Adam optimizer LR |
-| `β` | — | 20.0 | MI loss weight |
-| `mi_warmup_epochs` | — | 50 | Epochs before MI term activates |
-| `ema_decay` | — | 0.99 | EMA decay for MI estimator |
-| `num_generated_samples` | 1000 | 1000 | Synthetic samples to generate |
+| `input_dim` / `n_features` | 1200 | auto-detected | Flattened policy network weights |
+| `latent_size` / `z_dim` | 32 | 32 per head (z1 + z2) | Latent dimensionality |
+| `hidden_dim` | 324 | 324 | Width of each hidden layer |
+| `epochs` | 2000 | 2000 | Full training passes |
+| `batch_size` | 32 | 32 | |
+| `learning_rate` | 1e-3 | 1e-3 | Adam |
+| `beta` | n/a | 20.0 | Weight on the MI loss term |
+| `mi_warmup_epochs` | n/a | 50 | MI term is off for the first 50 epochs |
+| `ema_decay` | n/a | 0.99 | Smoothing factor for the MI covariance estimate |
+| `num_generated_samples` | 1000 | 1000 | Samples written to disk after training |
 
 ---
 
 ## Installation
 
 ```bash
-# Clone the repo
 git clone https://github.com/NachiketBa/Generative-AI-for-RL.git
 cd "Generative-AI-for-RL/Mars Lander Problem"
 
-# Install dependencies
 pip install torch pandas numpy matplotlib
 ```
 
-**Requirements:**
-- Python ≥ 3.9
-- PyTorch ≥ 2.0
-- pandas, numpy, matplotlib
-
-GPU is supported automatically — if CUDA is available, it will be used. Otherwise, training runs on CPU.
+Tested on Python 3.9+ and PyTorch 2.0+. Both scripts detect CUDA automatically and fall back to CPU if no GPU is found.
 
 ---
 
 ## Data Format
 
-Each dataset is a **folder of CSV files**, one CSV per policy parameter sample.
+Each dataset is a folder of CSV files, one file per training run.
 
 ```
 wind_vae_final_mod_params/
-├── sample_0000.csv     # shape: (1200, 1) — one policy parameter vector
-├── sample_0001.csv
-└── ...
+    sample_0000.csv     # single column, 1200 rows: one policy parameter vector
+    sample_0001.csv
+    ...
 
 no_wind_vae_final_mod_params/
-├── sample_0000.csv
-└── ...
+    sample_0000.csv
+    ...
 ```
 
-Each CSV contains a single column of 1200 float values (the flattened policy network parameters). Before training, data is **standardized per-feature** (zero mean, unit variance) and de-standardized before saving generated samples.
+Before training, each feature is normalized to zero mean and unit variance. Generated samples are de-normalized back to the original scale before saving.
 
-> ⚠️ **Update the data paths** in each script to point to your local dataset folders before running.
+> **Before running either script, update the hardcoded folder paths** near the top of each file to point to your local data directories.
 
 ---
 
-## Usage
+## Running the scripts
 
-### Running the S-VAE
+### S-VAE
 
 ```bash
 python S_VAE_mars_lander.py
 ```
 
-**What happens:**
-1. Loads CSV files from `wind_vae_final_mod_params/` (uses first 25 samples)
-2. Standardizes the data
-3. Trains a VAE for 2000 epochs
-4. Plots training loss curve
-5. Generates 1000 synthetic parameter samples
-6. Saves them to `Mars_lander_VAE_noise_25/` as `sample_0000.csv … sample_0999.csv`
+This loads the first 25 samples from the wind folder, trains a VAE for 2000 epochs, shows a loss plot, then writes 1000 generated parameter vectors to:
 
----
+```
+Mars_lander_VAE_noise_25/
+    sample_0000.csv  ...  sample_0999.csv
+```
 
-### Running the MI-VAE
+### MI-VAE
 
 ```bash
 python MI_VAE_mars_lander.py
 ```
 
-**What happens:**
-1. Loads wind data (25 samples, Dataset A) and no-wind data (1000 samples, Dataset B)
-2. Standardizes each domain independently
-3. Trains the MI-VAE for 2000 epochs with a 50-epoch MI warmup
-4. Plots training loss and EMA-based MI curves side-by-side
-5. Generates 1000 synthetic samples for the wind domain using the disentangled latent space
-6. Saves them to `Mars_lander_2AE_noise_25/` as `sample_0000.csv … sample_0999.csv`
+This loads 25 wind samples (Dataset A) and 1000 no-wind samples (Dataset B), trains the dual-encoder model for 2000 epochs, shows a two-panel plot of total loss and MI over training, then writes 1000 generated wind-domain parameter vectors to:
+
+```
+Mars_lander_2AE_noise_25/
+    sample_0000.csv  ...  sample_0999.csv
+```
 
 ---
 
-## Output
+## Console output
 
-Both scripts produce a folder of generated CSV files that can be fed back into the RL training pipeline:
-
-```
-Mars_lander_VAE_noise_25/      ← S-VAE output
-├── sample_0000.csv
-├── ...
-└── sample_0999.csv
-
-Mars_lander_2AE_noise_25/      ← MI-VAE output
-├── sample_0000.csv
-├── ...
-└── sample_0999.csv
-```
-
-Each generated CSV has the same format as the input (1200 × 1), de-normalized back to the original parameter scale.
-
----
-
-## Training Monitoring
-
-Both scripts print per-epoch diagnostics to the console:
-
-**S-VAE:**
+**S-VAE** prints one line per epoch:
 ```
 Epoch [1/2000], Loss: 142.3821, kl_loss: 0.0023
 Epoch [2/2000], Loss: 138.9102, kl_loss: 0.0041
-...
 ```
 
-**MI-VAE:**
+**MI-VAE** prints reconstruction loss, both KL terms, and the current MI estimate:
 ```
-Epoch 1/2000, Total Loss: 9.4521, KL1: 0.0031, KL2: 0.0012, MI: 0.0000
+Epoch 1/2000,  Total Loss: 9.4521, KL1: 0.0031, KL2: 0.0012, MI: 0.0000
 ...
 Epoch 51/2000, Total Loss: 8.1234, KL1: 0.0045, KL2: 0.0018, MI: 0.4321
-...
 ```
 
-At the end of training, both scripts display **matplotlib plots**:
-- **S-VAE**: Single loss curve (total loss vs. epoch)
-- **MI-VAE**: Two-panel plot — total loss + EMA-based MI(z1_A, z1_B) vs. epoch
+MI reads 0.0000 for the first 50 epochs while the warmup runs. Once it activates at epoch 51, you should see it climb as the domain-specific encoders diverge.
 
 ---
 
-## Design Decisions
+## Design notes
 
-**Why LayerNorm instead of BatchNorm?**
-The datasets are very small (especially Dataset A with only 25 samples), making batch statistics unstable. LayerNorm normalizes per-sample rather than per-batch, giving stable gradients regardless of batch size.
+**LayerNorm instead of BatchNorm.** With only 25 samples in Dataset A, batch statistics are too noisy to normalize reliably. LayerNorm operates per sample, so batch size does not affect its behavior.
 
-**Why an EMA-based MI estimator?**
-Computing mutual information from a single mini-batch is noisy. The exponential moving average (decay = 0.99) smooths the covariance estimate across batches, giving a more stable MI signal for the loss.
+**EMA for the MI estimate.** A covariance matrix computed from a single mini-batch of 32 samples is too noisy to use as a loss signal directly. The EMA with decay 0.99 accumulates statistics across batches and gives the optimizer a much smoother gradient.
 
-**Why separate priors for z1_A and z1_B?**
-The MI-VAE uses `N(0, I)` as the prior for z1_A (wind) and `N(1, 2I)` as the prior for z1_B (no-wind). This prior shift encourages the domain-specific encoders to occupy distinct regions of latent space from the start of training.
+**Separate priors for z1_A and z1_B.** The MI-VAE sets the prior for z1_A to N(0, I) and for z1_B to N(1, 2I). Starting the two domain-specific encoders from different prior regions makes it easier for the MI penalty to keep them separated throughout training.
 
-**Why MI warmup for 50 epochs?**
-The MI estimator needs time to warm up via EMA before it produces reliable gradients. Training without MI for the first 50 epochs lets reconstruction and KL losses stabilize first.
+**MI warmup.** The EMA covariance estimate is unreliable early in training before enough batches have been seen. Running 50 epochs of pure reconstruction and KL loss first gives the estimate time to stabilize before the MI term turns on.
 
 ---
 
-## File Structure
+## File structure
 
 ```
 Mars Lander Problem/
-├── S_VAE_mars_lander.py        # Standard VAE for single-domain generation
-├── MI_VAE_mars_lander.py       # Mutual Information VAE for cross-domain disentanglement
-└── README.md
+    S_VAE_mars_lander.py        # single-domain VAE
+    MI_VAE_mars_lander.py       # dual-domain MI-VAE
+    README.md
 ```
 
 ---
 
 ## Citation
 
-If you use this code in your research, please cite:
-
 ```bibtex
 @misc{nachiket2025genairl,
   author       = {Nachiket Ba},
-  title        = {Generative AI for Reinforcement Learning — Mars Lander Problem},
+  title        = {Generative AI for Reinforcement Learning: Mars Lander Problem},
   year         = {2025},
   howpublished = {\url{https://github.com/NachiketBa/Generative-AI-for-RL}},
 }
@@ -263,4 +218,4 @@ If you use this code in your research, please cite:
 
 ## License
 
-This project is licensed under the MIT License.
+MIT License.
