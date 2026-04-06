@@ -6,7 +6,7 @@
 
 ## What this is
 
-Real-world landing trajectories for the Mars Lander are difficult to collect owing to cost, labor and time considerations resulting in the availability of only a limited set of real-world trajectories. This project fits two VAE models to those small datasets and uses them to generate 1000 new synthetic samples for different wind conditions. This data can then be used for a BC and BBPO based RL algorithm for policy extraction and improvement.
+Real-world landing trajectories for the Mars Lander are difficult to collect owing to cost, labor and time considerations resulting in the availability of only a limited set of real-world trajectories. This project fits two VAE models to those small datasets and uses them to generate 1000 new synthetic samples for different wind conditions. This data can then be used for a BC and BPPO based RL algorithm for policy extraction and improvement.
 
 Two models are implemented:
 
@@ -19,10 +19,10 @@ Two models are implemented:
 
 ## Background
 
-The Mars Lander problem involves learning a control policy that adjusts a lander’s rotation and thrust to achieve a safe touchdown within a designated flat landing zone under Martian gravity (3.711 m/s²). In this setting, the reinforcement learning (RL) agent is represented by a neural network whose weights define a high-dimensional (1200-dimensional) parameter space including time, state variables, control inputs, and environmental disturbances such as wind. Rather than explicitly modeling the underlying lander dynamics which are both partially unknown and affected by noise, this work adopts a data-driven approach that focuses on learning the distribution of observed trajectories, enabling the generation of new samples that are statistically consistent with the original data.
+The Mars Lander problem involves learning a control policy that adjusts a lander’s rotation and thrust to achieve a safe touchdown within a designated flat landing zone under Martian gravity (3.711 m/s²). In this setting, the reinforcement learning (RL) agent is represented by a neural network whose weights define a  parameter space including time, state variables, control inputs, and environmental disturbances such as wind. Rather than explicitly modeling the underlying lander dynamics which are both partially unknown and affected by noise, this work adopts a data-driven approach that focuses on learning the distribution of observed trajectories, enabling the generation of new samples that are statistically consistent with the original data.
 
-- **Dataset A**: 25 policy parameter vectors from agents trained with wind
-- **Dataset B**: 1000 policy parameter vectors from agents trained without wind
+- **Dataset A**: 25 sample trajectories from agents trained with wind
+- **Dataset B**: 1000 sample trajectories from agents trained without wind
 
 The imbalance between the two domains is intentional; the MI-VAE is specifically designed to handle the case where one domain has far fewer samples.
 
