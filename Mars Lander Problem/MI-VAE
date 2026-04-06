@@ -1,4 +1,4 @@
-# This script implements the MI-Split-VAE for the Mars Lander Problem
+# This script implements the MI-VAE for the Mars Lander Problem
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
