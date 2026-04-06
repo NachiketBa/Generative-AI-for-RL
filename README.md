@@ -58,12 +58,12 @@ L = MSE(x_hat, x)  +  KL[ q(z|x) || N(0, I) ]
 A dual-encoder, dual-decoder VAE that separates what is unique to each domain (z1) from what both domains share (z2).
 
 ```
-Domain A (wind)              Domain B (no-wind)
+   Encoder1                      Encoder2
        |                            |
-  Encoder1 -> z1_A           Encoder1 -> z1_B     <- domain-specific (R^32)
-  Encoder2 -> z2_A           Encoder2 -> z2_B     <- shared           (R^32)
+  Dataset A -> z1_A           Dataset A,Dataset B -> z_shared 
+  Dataset B -> z2_B  
        |                            |
-  DecoderA([z1_A, z2_A])    DecoderB([z1_B, z2_B])
+  DecoderA([z1_A, z_shared])    DecoderB([z1_B, z_shared])
        |                            |
      x_hat_A                     x_hat_B
 ```
@@ -72,7 +72,7 @@ Domain A (wind)              Domain B (no-wind)
 ```
 L = Recon_A + Recon_B
   + lambda1 * (KL[q(z1_A) || p_A(z1)] + KL[q(z1_B) || p_B(z1)])
-  + lambda2 * KL[q(z2) || N(0, I)]
+  + lambda2 * KL[q(z_shared) || N(0, I)]
   + beta    * MI(z1_A, z1_B)          <- added after epoch 50
 ```
 
