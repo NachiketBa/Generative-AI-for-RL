@@ -12,7 +12,7 @@ Two models are implemented:
 
 | Script | Model | What it does |
 |---|---|---|
-| `S_VAE_mars_lander.py` | Standard VAE (S-VAE) | Trains only on wind data|
+| `S_VAE_mars_lander.py` | Standard VAE (S-VAE) | Trains only on wind data alone|
 | `MI_VAE_mars_lander.py` | Mutual Information VAE (MI-VAE) | Trains on both wind and no-wind data simultaneously, pushing the two domains into separate latent regions via a mutual information penalty |
 
 ---
