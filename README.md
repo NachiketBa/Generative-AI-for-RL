@@ -109,20 +109,3 @@ The MI term (weighted by beta = 20.0) penalizes any information shared between z
 **MI warmup.** The EMA covariance estimate is unreliable early in training before enough batches have been seen. Running 50 epochs of pure reconstruction and KL loss first gives the estimate time to stabilize before the MI term turns on.
 
 ---
-
-## Citation
-
-```bibtex
-@misc{nachiket2025genairl,
-  author       = {Nachiket Ba},
-  title        = {Generative AI for Reinforcement Learning: Mars Lander Problem},
-  year         = {2025},
-  howpublished = {\url{https://github.com/NachiketBa/Generative-AI-for-RL}},
-}
-```
-
----
-
-## License
-
-MIT License.
