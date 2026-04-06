@@ -140,7 +140,7 @@ Before training, each feature is normalized to zero mean and unit variance. Gene
 python S_VAE_mars_lander.py
 ```
 
-This loads the first 25 samples from the wind folder, trains a VAE for 2000 epochs, shows a loss plot, then writes 1000 generated parameter vectors to:
+This loads the first 25 samples from the wind folder, trains a VAE for 2000 epochs, shows a loss plot, then writes 1000 generated samples to:
 
 ```
 Mars_lander_VAE_noise_25/
@@ -155,7 +155,7 @@ Mars_lander_VAE_noise_25/
 python MI_VAE_mars_lander.py
 ```
 
-This loads 25 wind samples (Dataset A) and 1000 no-wind samples (Dataset B), trains the dual-encoder model for 2000 epochs, shows a two-panel plot of total loss and MI over training, then writes 1000 generated wind-domain parameter vectors to:
+This loads 25 wind samples (Dataset A) and 1000 no-wind samples (Dataset B), trains the dual-encoder model for 2000 epochs, then writes 1000 generated samples to:
 
 ```
 Mars_lander_2AE_noise_25/
