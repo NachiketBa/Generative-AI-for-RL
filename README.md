@@ -61,7 +61,7 @@ A dual-encoder, dual-decoder VAE that separates what is unique to each domain (z
    Encoder1                      Encoder2
        |                            |
   Dataset A -> z1_A           Dataset A,Dataset B -> z_shared 
-  Dataset B -> z2_B  
+  Dataset B -> z2_B                 |
        |                            |
   DecoderA([z1_A, z_shared])    DecoderB([z1_B, z_shared])
        |                            |
