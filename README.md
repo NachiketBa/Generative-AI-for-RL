@@ -85,7 +85,7 @@ The MI term (weighted by beta = 20.0) penalizes any information shared between z
 
 | Parameter | S-VAE | MI-VAE | Notes |
 |---|---|---|---|
-| `input_dim` / `n_features` | 1200 | auto-detected | Flattened policy network weights |
+| `input_dim` / `n_features` | 1200 | auto-detected | Flattened |
 | `latent_size` / `z_dim` | 32 | 32 per head (z1 + z2) | Latent dimensionality |
 | `hidden_dim` | 324 | 324 | Width of each hidden layer |
 | `epochs` | 2000 | 2000 | Full training passes |
