@@ -19,7 +19,7 @@ Two models are implemented:
 
 ## Background
 
-The Mars Lander problem involves learning a control policy that adjusts a lander’s rotation and thrust to achieve a safe touchdown within a designated flat landing zone under Martian gravity (3.711 m/s²). In this setting, the reinforcement learning (RL) agent is represented by a neural network whose weights define a  parameter space including time, state variables, control inputs, and wind. Rather than explicitly modeling the underlying lander dynamics which are both partially unknown and affected by noise, this work adopts a data-driven approach that focuses on learning the distribution of observed trajectories, enabling the generation of new samples that are statistically consistent with the original data.
+The Mars Lander problem involves learning a control policy that adjusts a lander’s rotation and thrust to achieve a safe touchdown within a designated flat landing zone under Martian gravity (3.728 m/s²). In this setting, the reinforcement learning (RL) agent is represented by a neural network whose weights define a  parameter space including time, state variables, control inputs, and wind. Rather than explicitly modeling the underlying lander dynamics which are both partially unknown and affected by noise, this work adopts a data-driven approach that focuses on learning the distribution of observed trajectories, enabling the generation of new samples that are statistically consistent with the original data.
 
 - **Dataset A**: 25 sample trajectories from agents trained with wind
 - **Dataset B**: 1000 sample trajectories from agents trained without wind
