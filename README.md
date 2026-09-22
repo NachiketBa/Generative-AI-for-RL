@@ -1,4 +1,4 @@
-# Generative AI for RL: Mars Lander Problem
+# Generative AI for RL: Planetary Lander Problem
 
 > Variational Autoencoders (S-VAE and MI-VAE) are trained to generate synthetic data for the Mars Lander problem.
 
